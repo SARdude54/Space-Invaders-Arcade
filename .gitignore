@@ -1,0 +1,25 @@
+# STM32CubeIDE/STM32CubeMX files to ignore
+
+# IDE-generated files
+.settings/
+.project
+.cproject
+.mxproject
+
+# Build output
+Release/
+Debug/
+*.elf
+*.bin
+*.hex
+*.map
+*.list
+
+# Backup files
+*~
+*.swp
+*.bak
+*.tmp
+
+# Other IDE-specific
+*.launch
