@@ -79,6 +79,8 @@ int main(void)
 
 
     int prev_x = player_x; // save previous position
+    const uint8_t scale = 3;
+    const uint16_t sprite_w_scaled = PLAYER_WIDTH * scale;
 
     while (1) {
         if (Joystick_ReadDirection() == -1) {
@@ -87,13 +89,20 @@ int main(void)
             player_x--;
         }
 
+        // Clamp sprite to screen bounds
+        if (player_x < 0)
+            player_x = 0;
+        else if (player_x + sprite_w_scaled > LCD_WIDTH)
+            player_x = LCD_WIDTH - sprite_w_scaled;
+
         if (player_x != prev_x) {
-            ClearSprite(prev_x, player_y, PLAYER_WIDTH, PLAYER_HEIGHT, 3, 0x0000);
+            ClearSprite(prev_x, player_y, PLAYER_WIDTH, PLAYER_HEIGHT, scale, 0x0000); // black
             prev_x = player_x;
         }
 
-        DrawSpriteScaled_DMA(player_x, player_y, PLAYER_WIDTH, PLAYER_HEIGHT, player_sprite, 3);
+        DrawSpriteScaled_DMA(player_x, player_y, PLAYER_WIDTH, PLAYER_HEIGHT, player_sprite, scale);
     }
+
 
 }
 
