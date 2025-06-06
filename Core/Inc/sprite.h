@@ -22,13 +22,16 @@ struct Sprite {
 	uint16_t prev_y;
 	uint16_t width;
 	uint16_t height;
-	const uint8_t scale;
-	const uint16_t sprite_w_scaled;
+	uint8_t scale;
+	uint16_t sprite_w_scaled;
 };
 
-extern struct Sprite player;
-extern struct Sprite bullet;
+
 extern struct Sprite enemy;
+
+void init_sprites(void);
+struct Sprite init_bullet(const uint16_t player_x);
+struct Sprite init_player(void);
 
 
 

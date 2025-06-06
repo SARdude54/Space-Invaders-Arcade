@@ -39,6 +39,64 @@ static void MX_DMA_Init(void);
 static void MX_SPI1_Init(void);
 static void MX_TIM2_Init(void);
 
+// Bullet Game Functionality
+
+/*
+ * The game will render the amount of bullets in a list
+ * Every time the player presses the button, it shoots the bullet
+ * So every time the button is pressed, a bullet struct instance will be added to an array
+ * This array is dynamically changing with a maximum limit
+ * And every bullet in the array will be rendered
+ * Every bullet will be moving to the top screen at a constant value (y value constantly decreasing)
+ * Once the bullet hits an enemy or goes out of the screen, it will be popped from screen and thus no longer rendered
+ * */
+
+// init values
+#define MAX_BULLETS 100
+
+struct Sprite bullets[MAX_BULLETS];
+int bullet_count = 0;
+
+struct Sprite new_bullet;
+
+// append bullets to array function
+void append_bullet(struct Sprite new_bullet) {
+    if (bullet_count < MAX_BULLETS) {
+        bullets[bullet_count++] = new_bullet;
+    } else {
+        // handle overflow, maybe print a warning or recycle old bullets
+    }
+}
+
+// remove bullet from array
+void PopBulletIfOffscreen(void) {
+    for (int i = 0; i < bullet_count; i++) {
+        if (bullets[i].y <= 0) {
+            // Shift all bullets after i one position to the left
+            for (int j = i; j < bullet_count - 1; j++) {
+                bullets[j] = bullets[j + 1];
+            }
+            bullet_count--;  // Decrease count
+            i--;  // Recheck current index after shift
+        }
+    }
+}
+
+
+// render bullets function
+void RenderAllBullets(void) {
+	//PopBulletIfOffscreen();
+    for (int i = 0; i < bullet_count; i++) {
+    	bullets[i].y--;
+        DrawSprite(&bullets[i]);
+        ClearSprite(&bullets[i], 0x0000);
+    }
+}
+
+
+// declare player game vars
+struct Sprite player;
+
 
 /**
   * @brief  The application entry point.
@@ -56,21 +114,37 @@ int main(void)
 
     FillScreenBlack();
 
+    // init players
+    player = init_player();
 
-//    int prev_x = player_x; // save previous position
-//    const uint8_t scale = 3;
-//    const uint16_t sprite_w_scaled = PLAYER_WIDTH * scale;
+    init_sprites();
 
     DrawSprite(&enemy);
-    DrawSprite(&bullet);
 
 
     while (1) {
-        if (Joystick_ReadDirection() == -1) {
+
+    	// capture input events
+    	int direction = Joystick_ReadDirection();
+    	int pressed = Button_IsPressed();
+
+    	// move left
+        if (direction == -1) {
             player.x++;
-        } else if (Joystick_ReadDirection() == 1) {
+        // move right
+        } else if (direction == 1) {
             player.x--;
         }
+
+        // shoot if button press
+        if(pressed){
+        	// create temp bullet and append to bullet array
+        	new_bullet = init_bullet(player.x);
+        	append_bullet(new_bullet);
+        }
+
+        // render all bullets in the array
+        RenderAllBullets();
 
         // Clamp player to screen bounds
         if (player.x < 0)
@@ -83,6 +157,7 @@ int main(void)
             player.prev_x = player.x;
         }
 
+        // draw the player
         DrawSprite(&player);
     }
 

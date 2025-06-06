@@ -77,39 +77,57 @@ const uint8_t enemy_map[182 * 2] = {
 		  0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x34, 0xfd, 0x34, 0xfd, 0x34, 0xfd, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
 		};
 
-// declare sprite structs
-struct Sprite player = {
-    .sprite_map = (const uint16_t *)player_map,
-    .x = 100,
-	.y = 275,
-    .prev_x = 100,
-	.prev_y = 275,
-	.width = PLAYER_WIDTH,
-	.height = PLAYER_WIDTH,
-    .scale = 3,
-    .sprite_w_scaled = PLAYER_WIDTH * 3
-};
+//struct Sprite player;
+//struct Sprite bullet;
+struct Sprite enemy;
 
-struct Sprite bullet = {
-    .sprite_map = (const uint16_t *)bullet_map,
-    .x = 150,
-	.y = 150,
-    .prev_x = 150,
-	.prev_y = 150,
-	.width = BULLET_WIDTH,
-	.height = BULLET_HEIGHT,
-    .scale = 1,
-    .sprite_w_scaled = BULLET_WIDTH * 1
-};
 
-struct Sprite enemy = {
-    .sprite_map = (const uint16_t *)enemy_map,
-    .x = 50,
-	.y = 50,
-    .prev_x = 50,
-	.prev_y = 50,
-	.width = ENEMY_WIDTH,
-	.height = ENEMY_HEIGHT,
-    .scale = 3,
-    .sprite_w_scaled = ENEMY_WIDTH * 3
-};
+void init_sprites(void) {
+
+
+    enemy.sprite_map = (const uint16_t *)enemy_map;
+    enemy.x = 50;
+    enemy.y = 50;
+    enemy.prev_x = 50;
+    enemy.prev_y = 50;
+    enemy.width = ENEMY_WIDTH;
+    enemy.height = ENEMY_HEIGHT;
+    enemy.scale = 3;
+    enemy.sprite_w_scaled = ENEMY_WIDTH * 3;
+}
+
+struct Sprite init_bullet(const uint16_t player_x){
+
+	struct Sprite bullet;
+
+    bullet.sprite_map = (const uint16_t *)bullet_map;
+    bullet.x = player_x;
+    bullet.y = 275 - PLAYER_HEIGHT*2;
+    bullet.prev_x = player_x;
+    bullet.prev_y = 275 - PLAYER_HEIGHT*2;
+    bullet.width = BULLET_WIDTH;
+    bullet.height = BULLET_HEIGHT;
+    bullet.scale = 1;
+    bullet.sprite_w_scaled = BULLET_WIDTH;
+
+    return bullet;
+}
+
+struct Sprite init_player(void){
+
+	struct Sprite player;
+
+    player.sprite_map = (const uint16_t *)player_map;
+    player.x = 100;
+    player.y = 275;
+    player.prev_x = 100;
+    player.prev_y = 275;
+    player.width = PLAYER_WIDTH;
+    player.height = PLAYER_HEIGHT;
+    player.scale = 3;
+    player.sprite_w_scaled = PLAYER_WIDTH * 3;
+
+    return player;
+}
+
+
