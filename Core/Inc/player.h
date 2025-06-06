@@ -12,8 +12,8 @@
 #define PLAYER_HEIGHT 14
 
 extern const uint16_t *player_sprite;
-extern uint16_t player_x;
-extern uint16_t player_y;
+extern int16_t player_x;
+extern int16_t player_y;
 
 
 

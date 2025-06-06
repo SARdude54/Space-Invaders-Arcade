@@ -25,6 +25,9 @@
 #include "joystick.h"
 #include "button.h"
 
+#define SCREEN_WIDTH  205
+#define SCREEN_HEIGHT 120
+
 /* Private variables ---------------------------------------------------------*/
 SPI_HandleTypeDef hspi1;
 DMA_HandleTypeDef hdma_spi1_tx;
@@ -32,6 +35,8 @@ DMA_HandleTypeDef hdma_spi1_tx;
 TIM_HandleTypeDef htim2;
 volatile uint8_t dma_transfer_complete = 0;
 volatile uint8_t frame_ready = 0;
+uint16_t framebuffer[SCREEN_WIDTH * SCREEN_HEIGHT]; // draw everything in RAM
+
 
 /* Private function prototypes -----------------------------------------------*/
 void SystemClock_Config(void);
@@ -64,8 +69,30 @@ void ClearOldSprite(uint16_t x, uint16_t y, uint16_t w, uint16_t h, uint8_t scal
     }
 }
 
+// takes a scaled sprite in RGB565 format and saves it to the framebuffer (buf)
+void blit_scaled_sprite_to_buffer(uint16_t *buf, int x, int y, int w, int h, const uint16_t *sprite, int scale) {
+    for (int row = 0; row < h; row++) {
+        for (int col = 0; col < w; col++) {
+            uint16_t color = sprite[row * w + col]; // original pixel
+            // Draw a scale × scale square of pixels for each sprite pixel
+            for (int dy = 0; dy < scale; dy++) {
+                for (int dx = 0; dx < scale; dx++) {
+                    int px = x + col * scale + dx;
+                    int py = y + row * scale + dy;
+                    // Check if destination pixel is inside bounds and then write to framebuffer
+                    if (px >= 0 && px < SCREEN_WIDTH && py >= 0 && py < SCREEN_HEIGHT) {
+                        buf[py * SCREEN_WIDTH + px] = color;
+                    }
+                }
+            }
+        }
+    }
+}
+
+
 void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 {
+	// Every 1/30 second, TIM2 triggers an interrupt
     if (htim->Instance == TIM2) {
         frame_ready = 1;
     }
@@ -89,36 +116,44 @@ int main(void)
 
     FillScreenBlack();
 
+    // loop runs every time TIM2 triggers an interrupt (set for ~30 FPS)
     HAL_TIM_Base_Start_IT(&htim2);
 
     while (1) {
-        //DrawSpriteScaled_DMA(player_x, player_y, PLAYER_WIDTH, PLAYER_HEIGHT, player_sprite, 5);
-
         if (frame_ready) {
             frame_ready = 0;
 
+            //Update sprite position
             int direction = Joystick_ReadDirection();
-            uint8_t moved = 0;
+            if (direction == -1) player_x++;
+            else if (direction == 1) player_x--;
 
-            old_player_x = player_x;
-            old_player_y = player_y;
 
-            if (direction == -1) {
-                player_x++;
-                moved = 1;
-            } else if (direction == 1) {
-                player_x--;
-                moved = 1;
-            }
+            // Clamp X so the sprite doesn’t overflow right/left
+            int scaled_width = PLAYER_WIDTH * 5;
+            if (player_x < 0)
+                player_x = 0;
 
-            if (moved) {
-                DrawSpriteScaled_DMA(player_x, player_y, PLAYER_WIDTH, PLAYER_HEIGHT, player_sprite, 5);
-                ClearOldSprite(old_player_x, old_player_y, PLAYER_WIDTH, PLAYER_HEIGHT, 5, 0x0000);
-            } else {
-                DrawSpriteScaled_DMA(player_x, player_y, PLAYER_WIDTH, PLAYER_HEIGHT, player_sprite, 5);
-            }
+            else if (player_x + scaled_width > SCREEN_WIDTH)
+                player_x = SCREEN_WIDTH - scaled_width;
+
+
+
+            // Clear framebuffer
+            for (int i = 0; i < SCREEN_WIDTH * SCREEN_HEIGHT; i++)
+                framebuffer[i] = 0x0000;  // black
+
+            // Draw sprite into framebuffer
+            blit_scaled_sprite_to_buffer(framebuffer, player_x, player_y, PLAYER_WIDTH, PLAYER_HEIGHT, player_sprite, 5);
+
+            // Send framebuffer to LCD
+            ST7789_SetAddrWindow(0, 0, SCREEN_WIDTH - 1, SCREEN_HEIGHT - 1);
+            dma_transfer_complete = 0;
+            ST7789_WriteDataDMA((uint8_t*)framebuffer, SCREEN_WIDTH * SCREEN_HEIGHT * 2);
+            while (!dma_transfer_complete);
         }
     }
+
 }
 
 

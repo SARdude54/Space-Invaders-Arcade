@@ -29,6 +29,6 @@ const uint8_t player_map[182 * 2] = {
 const uint16_t *player_sprite = (const uint16_t *)player_map;
 
 
-uint16_t player_x = 0;
-uint16_t player_y = 0;
+int16_t player_x = 100;
+int16_t player_y = 0;
 

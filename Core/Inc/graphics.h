@@ -32,7 +32,7 @@ void FillSCreenColor(uint16_t color);
 
 void DrawSprite(uint16_t x, uint16_t y, uint16_t w, uint16_t h, const uint16_t *sprite);
 
-extern uint8_t dma_row_buffer[2 * WIDTH];
+extern uint8_t dma_row_buffer[2 * LCD_WIDTH];
 void DrawSpriteScaled_DMA(uint16_t x, uint16_t y, uint16_t w, uint16_t h, const uint16_t *sprite, uint8_t scale);
 void DrawSpriteScaled(uint16_t x, uint16_t y, uint16_t w, uint16_t h, const uint16_t *sprite, uint8_t scale);
 

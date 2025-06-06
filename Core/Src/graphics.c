@@ -13,9 +13,9 @@
 
 void FillScreenBlack() {
     uint16_t color = 0x0000;
-    ST7789_SetAddrWindow(0, 0, WIDTH - 1, HEIGHT - 1);
+    ST7789_SetAddrWindow(0, 0, LCD_WIDTH - 1, LCD_HEIGHT - 1);
 
-    for (uint32_t i = 0; i < WIDTH * HEIGHT; ++i) {
+    for (uint32_t i = 0; i < LCD_WIDTH * LCD_HEIGHT; ++i) {
         uint8_t data[2] = {color >> 8, color & 0xFF};
         ST7789_WriteData(data, 2);
     }
@@ -23,9 +23,9 @@ void FillScreenBlack() {
 
 void FillScreenRed() {
     uint16_t color = 0xF800;
-    ST7789_SetAddrWindow(0, 0, WIDTH - 1, HEIGHT - 1);
+    ST7789_SetAddrWindow(0, 0, LCD_WIDTH - 1, LCD_HEIGHT - 1);
 
-    for (uint32_t i = 0; i < WIDTH * HEIGHT; ++i) {
+    for (uint32_t i = 0; i < LCD_WIDTH * LCD_HEIGHT; ++i) {
         uint8_t data[2] = {color >> 8, color & 0xFF};
         ST7789_WriteData(data, 2);
     }
@@ -33,9 +33,9 @@ void FillScreenRed() {
 
 void FillScreenBlue() {
     uint16_t color = 0x001f;
-    ST7789_SetAddrWindow(0, 0, WIDTH - 1, HEIGHT - 1);
+    ST7789_SetAddrWindow(0, 0, LCD_WIDTH - 1, LCD_HEIGHT - 1);
 
-    for (uint32_t i = 0; i < WIDTH * HEIGHT; ++i) {
+    for (uint32_t i = 0; i < LCD_WIDTH * LCD_HEIGHT; ++i) {
         uint8_t data[2] = {color >> 8, color & 0xFF};
         ST7789_WriteData(data, 2);
     }
@@ -43,9 +43,9 @@ void FillScreenBlue() {
 
 void FillScreenGreen() {
     uint16_t color = 0x07e0;
-    ST7789_SetAddrWindow(0, 0, WIDTH - 1, HEIGHT - 1);
+    ST7789_SetAddrWindow(0, 0, LCD_WIDTH - 1, LCD_HEIGHT - 1);
 
-    for (uint32_t i = 0; i < WIDTH * HEIGHT; ++i) {
+    for (uint32_t i = 0; i < LCD_WIDTH * LCD_HEIGHT; ++i) {
         uint8_t data[2] = {color >> 8, color & 0xFF};
         ST7789_WriteData(data, 2);
     }
@@ -53,18 +53,18 @@ void FillScreenGreen() {
 
 void FillScreenYellow() {
     uint16_t color = 0xffe0;
-    ST7789_SetAddrWindow(0, 0, WIDTH - 1, HEIGHT - 1);
+    ST7789_SetAddrWindow(0, 0, LCD_WIDTH - 1, LCD_HEIGHT - 1);
 
-    for (uint32_t i = 0; i < WIDTH * HEIGHT; ++i) {
+    for (uint32_t i = 0; i < LCD_WIDTH * LCD_HEIGHT; ++i) {
         uint8_t data[2] = {color >> 8, color & 0xFF};
         ST7789_WriteData(data, 2);
     }
 }
 
 void FillScreenColor(uint16_t color) {
-    ST7789_SetAddrWindow(0, 0, WIDTH - 1, HEIGHT - 1);
+    ST7789_SetAddrWindow(0, 0, LCD_WIDTH - 1, LCD_HEIGHT - 1);
 
-    for (uint32_t i = 0; i < WIDTH * HEIGHT; ++i) {
+    for (uint32_t i = 0; i < LCD_WIDTH * LCD_HEIGHT; ++i) {
         uint8_t data[2] = {color >> 8, color & 0xFF};
         ST7789_WriteData(data, 2);
     }
@@ -83,7 +83,7 @@ void DrawSprite(uint16_t x, uint16_t y, uint16_t w, uint16_t h, const uint16_t *
     }
 }
 
-uint8_t dma_row_buffer[2 * WIDTH];
+uint8_t dma_row_buffer[2 * LCD_WIDTH];
 void DrawSpriteScaled_DMA(uint16_t x, uint16_t y, uint16_t w, uint16_t h, const uint16_t *sprite, uint8_t scale) {
     for (uint16_t row = 0; row < h; row++) {
         for (uint8_t dy = 0; dy < scale; dy++) {

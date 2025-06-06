@@ -17,8 +17,8 @@
 #define RST_LOW()   HAL_GPIO_WritePin(GPIOA, GPIO_PIN_9, GPIO_PIN_RESET)
 #define RST_HIGH()  HAL_GPIO_WritePin(GPIOA, GPIO_PIN_9, GPIO_PIN_SET)
 
-#define WIDTH  205
-#define HEIGHT 832
+#define LCD_WIDTH  205
+#define LCD_HEIGHT 832
 
 extern volatile uint8_t dma_transfer_complete;
 
