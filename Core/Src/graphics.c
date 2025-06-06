@@ -6,7 +6,7 @@
  */
 #include "st7789.h"
 #include "graphics.h"
-#include "player.h"
+#include "sprite.h"
 /*
  * Fill Background screen functions in RGB565 format
  * */
@@ -77,36 +77,36 @@ void FillScreenColor(uint16_t color) {
  * Generic sprite functionality
  * */
 
-void DrawSprite(uint16_t x, uint16_t y, uint16_t w, uint16_t h, const uint16_t *sprite) {
-    ST7789_SetAddrWindow(x, y, x + w - 1, y + h - 1);
-
-    for (uint32_t i = 0; i < w * h; i++) {
-        uint8_t data[2] = {sprite[i] >> 8, sprite[i] & 0xFF};
-        ST7789_WriteData(data, 2);
-    }
-}
-
-void DrawSpriteScaled_DMA(uint16_t x, uint16_t y, uint16_t w, uint16_t h, const uint16_t *sprite, uint8_t scale) {
-    for (uint16_t row = 0; row < h; row++) {
-        for (uint8_t dy = 0; dy < scale; dy++) {
-            ST7789_SetAddrWindow(x, y + (row * scale) + dy, x + (w * scale) - 1, y + (row * scale) + dy);
-            uint16_t idx = 0;
-
-            for (uint16_t col = 0; col < w; col++) {
-                uint16_t pixel = sprite[row * w + col];
-                for (uint8_t dx = 0; dx < scale; dx++) {
-                    dma_row_buffer[idx++] = pixel >> 8;
-                    dma_row_buffer[idx++] = pixel & 0xFF;
-                }
-            }
-
-            dma_transfer_complete = 0;
-            ST7789_WriteDataDMA(dma_row_buffer, idx);
-            while (!dma_transfer_complete);
-            CS_HIGH();
-        }
-    }
-}
+//void DrawSprite(uint16_t x, uint16_t y, uint16_t w, uint16_t h, const uint16_t *sprite) {
+//    ST7789_SetAddrWindow(x, y, x + w - 1, y + h - 1);
+//
+//    for (uint32_t i = 0; i < w * h; i++) {
+//        uint8_t data[2] = {sprite[i] >> 8, sprite[i] & 0xFF};
+//        ST7789_WriteData(data, 2);
+//    }
+//}
+//
+//void DrawSpriteScaled_DMA(uint16_t x, uint16_t y, uint16_t w, uint16_t h, const uint16_t *sprite, uint8_t scale) {
+//    for (uint16_t row = 0; row < h; row++) {
+//        for (uint8_t dy = 0; dy < scale; dy++) {
+//            ST7789_SetAddrWindow(x, y + (row * scale) + dy, x + (w * scale) - 1, y + (row * scale) + dy);
+//            uint16_t idx = 0;
+//
+//            for (uint16_t col = 0; col < w; col++) {
+//                uint16_t pixel = sprite[row * w + col];
+//                for (uint8_t dx = 0; dx < scale; dx++) {
+//                    dma_row_buffer[idx++] = pixel >> 8;
+//                    dma_row_buffer[idx++] = pixel & 0xFF;
+//                }
+//            }
+//
+//            dma_transfer_complete = 0;
+//            ST7789_WriteDataDMA(dma_row_buffer, idx);
+//            while (!dma_transfer_complete);
+//            CS_HIGH();
+//        }
+//    }
+//}
 
 
 /*
@@ -119,19 +119,19 @@ void DrawSpriteScaled_DMA(uint16_t x, uint16_t y, uint16_t w, uint16_t h, const 
  * Render and clear functions for Player sprite
  * */
 
-void DrawPlayer(const struct Player* p) {
-    for (uint16_t row = 0; row < PLAYER_HEIGHT; row++) {
+void DrawSprite(const struct Sprite* p) {
+    for (uint16_t row = 0; row < p->height; row++) {
         for (uint8_t dy = 0; dy < p->scale; dy++) {
             ST7789_SetAddrWindow(
                 p->x,
                 p->y + (row * p->scale) + dy,
-                p->x + (PLAYER_WIDTH * p->scale) - 1,
+                p->x + (p->width * p->scale) - 1,
                 p->y + (row * p->scale) + dy
             );
 
             uint16_t idx = 0;
-            for (uint16_t col = 0; col < PLAYER_WIDTH; col++) {
-                uint16_t pixel = p->player_sprite[row * PLAYER_WIDTH + col];
+            for (uint16_t col = 0; col < p->width; col++) {
+                uint16_t pixel = p->sprite_map[row * p->width + col];
                 for (uint8_t dx = 0; dx < p->scale; dx++) {
                     dma_row_buffer[idx++] = pixel >> 8;
                     dma_row_buffer[idx++] = pixel & 0xFF;
@@ -147,18 +147,18 @@ void DrawPlayer(const struct Player* p) {
 }
 
 
-void ClearPlayer(const struct Player* p, uint16_t bg_color) {
-    for (uint16_t row = 0; row < PLAYER_HEIGHT; row++) {
+void ClearSprite(const struct Sprite* p, uint16_t bg_color) {
+    for (uint16_t row = 0; row < p->height; row++) {
         for (uint8_t dy = 0; dy < p->scale; dy++) {
             ST7789_SetAddrWindow(
                 p->prev_x,
                 p->y + (row * p->scale) + dy,
-                p->prev_x + (PLAYER_WIDTH * p->scale) - 1,
+                p->prev_x + (p->width * p->scale) - 1,
                 p->y + (row * p->scale) + dy
             );
 
             uint16_t idx = 0;
-            for (uint16_t col = 0; col < PLAYER_WIDTH; col++) {
+            for (uint16_t col = 0; col < p->width; col++) {
                 for (uint8_t dx = 0; dx < p->scale; dx++) {
                     dma_row_buffer[idx++] = bg_color >> 8;
                     dma_row_buffer[idx++] = bg_color & 0xFF;

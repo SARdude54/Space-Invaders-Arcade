@@ -21,9 +21,7 @@
 #include "stm32l4xx_hal.h"
 #include "st7789.h"
 #include "graphics.h"
-#include "player.h"
-#include "enemy.h"
-#include "bullet.h"
+#include "sprite.h"
 #include "joystick.h"
 #include "button.h"
 
@@ -63,8 +61,8 @@ int main(void)
 //    const uint8_t scale = 3;
 //    const uint16_t sprite_w_scaled = PLAYER_WIDTH * scale;
 
-    DrawSpriteScaled_DMA(enemy_x, enemy_y, ENEMY_WIDTH, ENEMY_HEIGHT, enemy_sprite, 3);
-    DrawSpriteScaled_DMA(bullet_x, bullet_y, BULLET_WIDTH, BULLET_HEIGHT, bullet_sprite, 1);
+    DrawSprite(&enemy);
+    DrawSprite(&bullet);
 
 
     while (1) {
@@ -81,11 +79,11 @@ int main(void)
             player.x = LCD_WIDTH - player.sprite_w_scaled;
 
         if (player.x != player.prev_x) {
-            ClearPlayer(&player, 0x0000); // Clear previous sprite
+        	ClearSprite(&player, 0x0000); // Clear previous sprite
             player.prev_x = player.x;
         }
 
-        DrawPlayer(&player);
+        DrawSprite(&player);
     }
 
 
