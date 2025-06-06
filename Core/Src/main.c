@@ -31,6 +31,7 @@ DMA_HandleTypeDef hdma_spi1_tx;
 
 TIM_HandleTypeDef htim2;
 volatile uint8_t dma_transfer_complete = 0;
+volatile uint8_t frame_ready = 0;
 
 /* Private function prototypes -----------------------------------------------*/
 void SystemClock_Config(void);
@@ -38,6 +39,39 @@ static void MX_GPIO_Init(void);
 static void MX_DMA_Init(void);
 static void MX_SPI1_Init(void);
 static void MX_TIM2_Init(void);
+
+uint16_t old_player_x = 0;
+uint16_t old_player_y = 0;
+
+void ClearOldSprite(uint16_t x, uint16_t y, uint16_t w, uint16_t h, uint8_t scale, uint16_t bg_color) {
+    for (uint16_t row = 0; row < h; row++) {
+        for (uint8_t dy = 0; dy < scale; dy++) {
+            ST7789_SetAddrWindow(x, y + (row * scale) + dy, x + (w * scale) - 1, y + (row * scale) + dy);
+            uint16_t idx = 0;
+
+            for (uint16_t col = 0; col < w; col++) {
+                for (uint8_t dx = 0; dx < scale; dx++) {
+                    dma_row_buffer[idx++] = bg_color >> 8;
+                    dma_row_buffer[idx++] = bg_color & 0xFF;
+                }
+            }
+
+            dma_transfer_complete = 0;
+            ST7789_WriteDataDMA(dma_row_buffer, idx);
+            while (!dma_transfer_complete);
+            CS_HIGH();
+        }
+    }
+}
+
+void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
+{
+    if (htim->Instance == TIM2) {
+        frame_ready = 1;
+    }
+}
+
+
 
 /**
   * @brief  The application entry point.
@@ -53,24 +87,40 @@ int main(void)
     ST7789_Init();
     MX_TIM2_Init();
 
-    FillScreenBlue();
+    FillScreenBlack();
 
-
-
-
-    //FillScreenRed();
+    HAL_TIM_Base_Start_IT(&htim2);
 
     while (1) {
-    	if(Joystick_ReadDirection() == -1){
-    		player_x++;
-    	} else if(Joystick_ReadDirection() == 1){
-    		player_x--;
-    	}
-		DrawSpriteScaled_DMA(player_x, player_y, PLAYER_WIDTH, PLAYER_HEIGHT, player_sprite, 5);
+        //DrawSpriteScaled_DMA(player_x, player_y, PLAYER_WIDTH, PLAYER_HEIGHT, player_sprite, 5);
 
+        if (frame_ready) {
+            frame_ready = 0;
 
+            int direction = Joystick_ReadDirection();
+            uint8_t moved = 0;
+
+            old_player_x = player_x;
+            old_player_y = player_y;
+
+            if (direction == -1) {
+                player_x++;
+                moved = 1;
+            } else if (direction == 1) {
+                player_x--;
+                moved = 1;
+            }
+
+            if (moved) {
+                DrawSpriteScaled_DMA(player_x, player_y, PLAYER_WIDTH, PLAYER_HEIGHT, player_sprite, 5);
+                ClearOldSprite(old_player_x, old_player_y, PLAYER_WIDTH, PLAYER_HEIGHT, 5, 0x0000);
+            } else {
+                DrawSpriteScaled_DMA(player_x, player_y, PLAYER_WIDTH, PLAYER_HEIGHT, player_sprite, 5);
+            }
+        }
     }
 }
+
 
 /**
   * @brief System Clock Configuration
@@ -188,9 +238,9 @@ static void MX_TIM2_Init(void)
 
   /* USER CODE END TIM2_Init 1 */
   htim2.Instance = TIM2;
-  htim2.Init.Prescaler = 3999;
+  htim2.Init.Prescaler = 7999;
   htim2.Init.CounterMode = TIM_COUNTERMODE_DOWN;
-  htim2.Init.Period = 19;
+  htim2.Init.Period = 332;
   htim2.Init.ClockDivision = TIM_CLOCKDIVISION_DIV2;
   htim2.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_ENABLE;
   if (HAL_TIM_Base_Init(&htim2) != HAL_OK)
@@ -211,6 +261,10 @@ static void MX_TIM2_Init(void)
   /* USER CODE BEGIN TIM2_Init 2 */
 
   /* USER CODE END TIM2_Init 2 */
+
+  HAL_NVIC_SetPriority(TIM2_IRQn, 0, 0);
+  HAL_NVIC_EnableIRQ(TIM2_IRQn);
+
 
 }
 

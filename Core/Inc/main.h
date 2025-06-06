@@ -29,6 +29,10 @@ extern "C" {
 /* Includes ------------------------------------------------------------------*/
 #include "stm32l4xx_hal.h"
 
+extern TIM_HandleTypeDef htim2;
+extern volatile uint8_t frame_ready;
+
+
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 

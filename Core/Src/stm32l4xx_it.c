@@ -56,6 +56,8 @@
 
 /* External variables --------------------------------------------------------*/
 extern DMA_HandleTypeDef hdma_spi1_tx;
+extern TIM_HandleTypeDef htim2;
+
 /* USER CODE BEGIN EV */
 
 /* USER CODE END EV */
@@ -63,6 +65,12 @@ extern DMA_HandleTypeDef hdma_spi1_tx;
 /******************************************************************************/
 /*           Cortex-M4 Processor Interruption and Exception Handlers          */
 /******************************************************************************/
+
+void TIM2_IRQHandler(void)
+{
+    HAL_TIM_IRQHandler(&htim2);
+}
+
 /**
   * @brief This function handles Non maskable interrupt.
   */
