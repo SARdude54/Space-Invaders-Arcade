@@ -30,5 +30,5 @@ const uint16_t *player_sprite = (const uint16_t *)player_map;
 
 
 int16_t player_x = 100;
-int16_t player_y = 0;
+int16_t player_y = 275;
 

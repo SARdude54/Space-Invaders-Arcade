@@ -25,18 +25,12 @@
 #include "joystick.h"
 #include "button.h"
 
-#define SCREEN_WIDTH  205
-#define SCREEN_HEIGHT 120
-
 /* Private variables ---------------------------------------------------------*/
 SPI_HandleTypeDef hspi1;
 DMA_HandleTypeDef hdma_spi1_tx;
 
 TIM_HandleTypeDef htim2;
 volatile uint8_t dma_transfer_complete = 0;
-volatile uint8_t frame_ready = 0;
-uint16_t framebuffer[SCREEN_WIDTH * SCREEN_HEIGHT]; // draw everything in RAM
-
 
 /* Private function prototypes -----------------------------------------------*/
 void SystemClock_Config(void);
@@ -45,15 +39,12 @@ static void MX_DMA_Init(void);
 static void MX_SPI1_Init(void);
 static void MX_TIM2_Init(void);
 
-uint16_t old_player_x = 0;
-uint16_t old_player_y = 0;
-
-void ClearOldSprite(uint16_t x, uint16_t y, uint16_t w, uint16_t h, uint8_t scale, uint16_t bg_color) {
+void ClearSprite(uint16_t x, uint16_t y, uint16_t w, uint16_t h, uint8_t scale, uint16_t bg_color) {
     for (uint16_t row = 0; row < h; row++) {
         for (uint8_t dy = 0; dy < scale; dy++) {
-            ST7789_SetAddrWindow(x, y + (row * scale) + dy, x + (w * scale) - 1, y + (row * scale) + dy);
-            uint16_t idx = 0;
+            ST7789_SetAddrWindow(x, y + row * scale + dy, x + w * scale - 1, y + row * scale + dy);
 
+            uint16_t idx = 0;
             for (uint16_t col = 0; col < w; col++) {
                 for (uint8_t dx = 0; dx < scale; dx++) {
                     dma_row_buffer[idx++] = bg_color >> 8;
@@ -68,36 +59,6 @@ void ClearOldSprite(uint16_t x, uint16_t y, uint16_t w, uint16_t h, uint8_t scal
         }
     }
 }
-
-// takes a scaled sprite in RGB565 format and saves it to the framebuffer (buf)
-void blit_scaled_sprite_to_buffer(uint16_t *buf, int x, int y, int w, int h, const uint16_t *sprite, int scale) {
-    for (int row = 0; row < h; row++) {
-        for (int col = 0; col < w; col++) {
-            uint16_t color = sprite[row * w + col]; // original pixel
-            // Draw a scale × scale square of pixels for each sprite pixel
-            for (int dy = 0; dy < scale; dy++) {
-                for (int dx = 0; dx < scale; dx++) {
-                    int px = x + col * scale + dx;
-                    int py = y + row * scale + dy;
-                    // Check if destination pixel is inside bounds and then write to framebuffer
-                    if (px >= 0 && px < SCREEN_WIDTH && py >= 0 && py < SCREEN_HEIGHT) {
-                        buf[py * SCREEN_WIDTH + px] = color;
-                    }
-                }
-            }
-        }
-    }
-}
-
-
-void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
-{
-	// Every 1/30 second, TIM2 triggers an interrupt
-    if (htim->Instance == TIM2) {
-        frame_ready = 1;
-    }
-}
-
 
 
 /**
@@ -116,46 +77,25 @@ int main(void)
 
     FillScreenBlack();
 
-    // loop runs every time TIM2 triggers an interrupt (set for ~30 FPS)
-    HAL_TIM_Base_Start_IT(&htim2);
+
+    int prev_x = player_x; // save previous position
 
     while (1) {
-        if (frame_ready) {
-            frame_ready = 0;
-
-            //Update sprite position
-            int direction = Joystick_ReadDirection();
-            if (direction == -1) player_x++;
-            else if (direction == 1) player_x--;
-
-
-            // Clamp X so the sprite doesn’t overflow right/left
-            int scaled_width = PLAYER_WIDTH * 5;
-            if (player_x < 0)
-                player_x = 0;
-
-            else if (player_x + scaled_width > SCREEN_WIDTH)
-                player_x = SCREEN_WIDTH - scaled_width;
-
-
-
-            // Clear framebuffer
-            for (int i = 0; i < SCREEN_WIDTH * SCREEN_HEIGHT; i++)
-                framebuffer[i] = 0x0000;  // black
-
-            // Draw sprite into framebuffer
-            blit_scaled_sprite_to_buffer(framebuffer, player_x, player_y, PLAYER_WIDTH, PLAYER_HEIGHT, player_sprite, 5);
-
-            // Send framebuffer to LCD
-            ST7789_SetAddrWindow(0, 0, SCREEN_WIDTH - 1, SCREEN_HEIGHT - 1);
-            dma_transfer_complete = 0;
-            ST7789_WriteDataDMA((uint8_t*)framebuffer, SCREEN_WIDTH * SCREEN_HEIGHT * 2);
-            while (!dma_transfer_complete);
+        if (Joystick_ReadDirection() == -1) {
+            player_x++;
+        } else if (Joystick_ReadDirection() == 1) {
+            player_x--;
         }
+
+        if (player_x != prev_x) {
+            ClearSprite(prev_x, player_y, PLAYER_WIDTH, PLAYER_HEIGHT, 3, 0x0000);
+            prev_x = player_x;
+        }
+
+        DrawSpriteScaled_DMA(player_x, player_y, PLAYER_WIDTH, PLAYER_HEIGHT, player_sprite, 3);
     }
 
 }
-
 
 /**
   * @brief System Clock Configuration
@@ -273,9 +213,9 @@ static void MX_TIM2_Init(void)
 
   /* USER CODE END TIM2_Init 1 */
   htim2.Instance = TIM2;
-  htim2.Init.Prescaler = 7999;
+  htim2.Init.Prescaler = 3999;
   htim2.Init.CounterMode = TIM_COUNTERMODE_DOWN;
-  htim2.Init.Period = 332;
+  htim2.Init.Period = 19;
   htim2.Init.ClockDivision = TIM_CLOCKDIVISION_DIV2;
   htim2.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_ENABLE;
   if (HAL_TIM_Base_Init(&htim2) != HAL_OK)
@@ -296,10 +236,6 @@ static void MX_TIM2_Init(void)
   /* USER CODE BEGIN TIM2_Init 2 */
 
   /* USER CODE END TIM2_Init 2 */
-
-  HAL_NVIC_SetPriority(TIM2_IRQn, 0, 0);
-  HAL_NVIC_EnableIRQ(TIM2_IRQn);
-
 
 }
 
