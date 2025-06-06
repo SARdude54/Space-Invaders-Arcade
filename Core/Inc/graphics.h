@@ -28,9 +28,6 @@ void FillScreenGreen(void);
 void FillScreenBlue(void);
 void FillScreenColor(uint16_t color);
 
-//void DrawSprite(uint16_t x, uint16_t y, uint16_t w, uint16_t h, const uint16_t *sprite);
-//void DrawSpriteScaled_DMA(uint16_t x, uint16_t y, uint16_t w, uint16_t h, const uint16_t *sprite, uint8_t scale);
-//void DrawSpriteScaled(uint16_t x, uint16_t y, uint16_t w, uint16_t h, const uint16_t *sprite, uint8_t scale);
 
 void DrawSprite(const struct Sprite* p);
 void ClearSprite(const struct Sprite* p, uint16_t bg_color);

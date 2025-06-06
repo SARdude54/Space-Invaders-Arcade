@@ -77,8 +77,7 @@ const uint8_t enemy_map[182 * 2] = {
 		  0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x34, 0xfd, 0x34, 0xfd, 0x34, 0xfd, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
 		};
 
-//struct Sprite player;
-//struct Sprite bullet;
+
 struct Sprite enemy;
 
 
@@ -96,6 +95,7 @@ void init_sprites(void) {
     enemy.sprite_w_scaled = ENEMY_WIDTH * 3;
 }
 
+// initialize a bullet instance
 struct Sprite init_bullet(const uint16_t player_x){
 
 	struct Sprite bullet;
@@ -113,6 +113,7 @@ struct Sprite init_bullet(const uint16_t player_x){
     return bullet;
 }
 
+// initialize and a player instance
 struct Sprite init_player(void){
 
 	struct Sprite player;
