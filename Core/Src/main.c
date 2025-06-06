@@ -22,6 +22,8 @@
 #include "st7789.h"
 #include "graphics.h"
 #include "player.h"
+#include "enemy.h"
+#include "bullet.h"
 #include "joystick.h"
 #include "button.h"
 
@@ -81,6 +83,10 @@ int main(void)
     int prev_x = player_x; // save previous position
     const uint8_t scale = 3;
     const uint16_t sprite_w_scaled = PLAYER_WIDTH * scale;
+
+    DrawSpriteScaled_DMA(enemy_x, enemy_y, ENEMY_WIDTH, ENEMY_HEIGHT, enemy_sprite, 3);
+    DrawSpriteScaled_DMA(bullet_x, bullet_y, BULLET_WIDTH, BULLET_HEIGHT, bullet_sprite, 1);
+
 
     while (1) {
         if (Joystick_ReadDirection() == -1) {
