@@ -74,7 +74,7 @@ void FillScreenColor(uint16_t color) {
 }
 
 /*
- * Sprite functionality
+ * Generic sprite functionality
  * */
 
 void DrawSprite(uint16_t x, uint16_t y, uint16_t w, uint16_t h, const uint16_t *sprite) {
@@ -108,5 +108,69 @@ void DrawSpriteScaled_DMA(uint16_t x, uint16_t y, uint16_t w, uint16_t h, const 
     }
 }
 
+
+/*
+ *
+ * These are sprite specific render and clear functions
+ *
+ * */
+
+/*
+ * Render and clear functions for Player sprite
+ * */
+
+void DrawPlayer(const struct Player* p) {
+    for (uint16_t row = 0; row < PLAYER_HEIGHT; row++) {
+        for (uint8_t dy = 0; dy < p->scale; dy++) {
+            ST7789_SetAddrWindow(
+                p->x,
+                p->y + (row * p->scale) + dy,
+                p->x + (PLAYER_WIDTH * p->scale) - 1,
+                p->y + (row * p->scale) + dy
+            );
+
+            uint16_t idx = 0;
+            for (uint16_t col = 0; col < PLAYER_WIDTH; col++) {
+                uint16_t pixel = p->player_sprite[row * PLAYER_WIDTH + col];
+                for (uint8_t dx = 0; dx < p->scale; dx++) {
+                    dma_row_buffer[idx++] = pixel >> 8;
+                    dma_row_buffer[idx++] = pixel & 0xFF;
+                }
+            }
+
+            dma_transfer_complete = 0;
+            ST7789_WriteDataDMA(dma_row_buffer, idx);
+            while (!dma_transfer_complete);
+            CS_HIGH();
+        }
+    }
+}
+
+
+void ClearPlayer(const struct Player* p, uint16_t bg_color) {
+    for (uint16_t row = 0; row < PLAYER_HEIGHT; row++) {
+        for (uint8_t dy = 0; dy < p->scale; dy++) {
+            ST7789_SetAddrWindow(
+                p->prev_x,
+                p->y + (row * p->scale) + dy,
+                p->prev_x + (PLAYER_WIDTH * p->scale) - 1,
+                p->y + (row * p->scale) + dy
+            );
+
+            uint16_t idx = 0;
+            for (uint16_t col = 0; col < PLAYER_WIDTH; col++) {
+                for (uint8_t dx = 0; dx < p->scale; dx++) {
+                    dma_row_buffer[idx++] = bg_color >> 8;
+                    dma_row_buffer[idx++] = bg_color & 0xFF;
+                }
+            }
+
+            dma_transfer_complete = 0;
+            ST7789_WriteDataDMA(dma_row_buffer, idx);
+            while (!dma_transfer_complete);
+            CS_HIGH();
+        }
+    }
+}
 
 

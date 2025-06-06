@@ -25,10 +25,12 @@ const uint8_t player_map[182 * 2] = {
 		  0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x6a, 0xfa, 0x6a, 0xfa, 0x6a, 0xfa, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
 		};
 
-// reinterpret the byte array as 16-bit RGB565 pixels
-const uint16_t *player_sprite = (const uint16_t *)player_map;
-
-
-int16_t player_x = 100;
-int16_t player_y = 275;
-
+struct Player player = {
+    .player_sprite = (const uint16_t *)player_map,
+    .x = 100,
+	.y = 275,
+    .prev_x = 100,
+	.prev_y = 275,
+    .scale = 3,
+    .sprite_w_scaled = PLAYER_WIDTH * 3
+};

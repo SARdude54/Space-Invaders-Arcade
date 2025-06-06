@@ -41,27 +41,6 @@ static void MX_DMA_Init(void);
 static void MX_SPI1_Init(void);
 static void MX_TIM2_Init(void);
 
-void ClearSprite(uint16_t x, uint16_t y, uint16_t w, uint16_t h, uint8_t scale, uint16_t bg_color) {
-    for (uint16_t row = 0; row < h; row++) {
-        for (uint8_t dy = 0; dy < scale; dy++) {
-            ST7789_SetAddrWindow(x, y + row * scale + dy, x + w * scale - 1, y + row * scale + dy);
-
-            uint16_t idx = 0;
-            for (uint16_t col = 0; col < w; col++) {
-                for (uint8_t dx = 0; dx < scale; dx++) {
-                    dma_row_buffer[idx++] = bg_color >> 8;
-                    dma_row_buffer[idx++] = bg_color & 0xFF;
-                }
-            }
-
-            dma_transfer_complete = 0;
-            ST7789_WriteDataDMA(dma_row_buffer, idx);
-            while (!dma_transfer_complete);
-            CS_HIGH();
-        }
-    }
-}
-
 
 /**
   * @brief  The application entry point.
@@ -80,9 +59,9 @@ int main(void)
     FillScreenBlack();
 
 
-    int prev_x = player_x; // save previous position
-    const uint8_t scale = 3;
-    const uint16_t sprite_w_scaled = PLAYER_WIDTH * scale;
+//    int prev_x = player_x; // save previous position
+//    const uint8_t scale = 3;
+//    const uint16_t sprite_w_scaled = PLAYER_WIDTH * scale;
 
     DrawSpriteScaled_DMA(enemy_x, enemy_y, ENEMY_WIDTH, ENEMY_HEIGHT, enemy_sprite, 3);
     DrawSpriteScaled_DMA(bullet_x, bullet_y, BULLET_WIDTH, BULLET_HEIGHT, bullet_sprite, 1);
@@ -90,24 +69,25 @@ int main(void)
 
     while (1) {
         if (Joystick_ReadDirection() == -1) {
-            player_x++;
+            player.x++;
         } else if (Joystick_ReadDirection() == 1) {
-            player_x--;
+            player.x--;
         }
 
-        // Clamp sprite to screen bounds
-        if (player_x < 0)
-            player_x = 0;
-        else if (player_x + sprite_w_scaled > LCD_WIDTH)
-            player_x = LCD_WIDTH - sprite_w_scaled;
+        // Clamp player to screen bounds
+        if (player.x < 0)
+            player.x = 0;
+        else if (player.x + player.sprite_w_scaled > LCD_WIDTH)
+            player.x = LCD_WIDTH - player.sprite_w_scaled;
 
-        if (player_x != prev_x) {
-            ClearSprite(prev_x, player_y, PLAYER_WIDTH, PLAYER_HEIGHT, scale, 0x0000); // black
-            prev_x = player_x;
+        if (player.x != player.prev_x) {
+            ClearPlayer(&player, 0x0000); // Clear previous sprite
+            player.prev_x = player.x;
         }
 
-        DrawSpriteScaled_DMA(player_x, player_y, PLAYER_WIDTH, PLAYER_HEIGHT, player_sprite, scale);
+        DrawPlayer(&player);
     }
+
 
 
 }
