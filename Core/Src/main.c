@@ -20,14 +20,24 @@
 #include "main.h"
 #include "stm32l4xx_hal.h"
 #include "st7789.h"
+#include "graphics.h"
+#include "player.h"
+#include "joystick.h"
+#include "button.h"
 
+/* Private variables ---------------------------------------------------------*/
 SPI_HandleTypeDef hspi1;
+DMA_HandleTypeDef hdma_spi1_tx;
+
+TIM_HandleTypeDef htim2;
+volatile uint8_t dma_transfer_complete = 0;
 
 /* Private function prototypes -----------------------------------------------*/
 void SystemClock_Config(void);
 static void MX_GPIO_Init(void);
+static void MX_DMA_Init(void);
 static void MX_SPI1_Init(void);
-/* USER CODE BEGIN PFP */
+static void MX_TIM2_Init(void);
 
 /**
   * @brief  The application entry point.
@@ -39,13 +49,28 @@ int main(void)
     SystemClock_Config();
     MX_GPIO_Init();
     MX_SPI1_Init();
-
+    MX_DMA_Init();
     ST7789_Init();
-    FillScreenYellow();
+    MX_TIM2_Init();
 
-    while (1) {}
+    FillScreenBlue();
+
+
+
+
+    //FillScreenRed();
+
+    while (1) {
+    	if(Joystick_ReadDirection() == -1){
+    		player_x++;
+    	} else if(Joystick_ReadDirection() == 1){
+    		player_x--;
+    	}
+		DrawSpriteScaled_DMA(player_x, player_y, PLAYER_WIDTH, PLAYER_HEIGHT, player_sprite, 5);
+
+
+    }
 }
-
 
 /**
   * @brief System Clock Configuration
@@ -96,6 +121,14 @@ void SystemClock_Config(void)
   }
 }
 
+void HAL_SPI_TxCpltCallback(SPI_HandleTypeDef *hspi)
+{
+    if (hspi->Instance == SPI1) {
+        dma_transfer_complete = 1;
+    }
+}
+
+
 /**
   * @brief SPI1 Initialization Function
   * @param None
@@ -137,6 +170,81 @@ static void MX_SPI1_Init(void)
 }
 
 /**
+  * @brief TIM2 Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_TIM2_Init(void)
+{
+
+  /* USER CODE BEGIN TIM2_Init 0 */
+
+  /* USER CODE END TIM2_Init 0 */
+
+  TIM_ClockConfigTypeDef sClockSourceConfig = {0};
+  TIM_MasterConfigTypeDef sMasterConfig = {0};
+
+  /* USER CODE BEGIN TIM2_Init 1 */
+
+  /* USER CODE END TIM2_Init 1 */
+  htim2.Instance = TIM2;
+  htim2.Init.Prescaler = 3999;
+  htim2.Init.CounterMode = TIM_COUNTERMODE_DOWN;
+  htim2.Init.Period = 19;
+  htim2.Init.ClockDivision = TIM_CLOCKDIVISION_DIV2;
+  htim2.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_ENABLE;
+  if (HAL_TIM_Base_Init(&htim2) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  sClockSourceConfig.ClockSource = TIM_CLOCKSOURCE_INTERNAL;
+  if (HAL_TIM_ConfigClockSource(&htim2, &sClockSourceConfig) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  sMasterConfig.MasterOutputTrigger = TIM_TRGO_UPDATE;
+  sMasterConfig.MasterSlaveMode = TIM_MASTERSLAVEMODE_DISABLE;
+  if (HAL_TIMEx_MasterConfigSynchronization(&htim2, &sMasterConfig) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN TIM2_Init 2 */
+
+  /* USER CODE END TIM2_Init 2 */
+
+}
+
+/**
+  * Enable DMA controller clock
+  */
+static void MX_DMA_Init(void)
+{
+
+  /* DMA controller clock enable */
+  __HAL_RCC_DMA1_CLK_ENABLE();
+
+  /* DMA interrupt init */
+  /* DMA1_Channel3_IRQn interrupt configuration */
+  HAL_NVIC_SetPriority(DMA1_Channel3_IRQn, 0, 0);
+  HAL_NVIC_EnableIRQ(DMA1_Channel3_IRQn);
+
+  hdma_spi1_tx.Instance = DMA1_Channel3;
+  hdma_spi1_tx.Init.Request = DMA_REQUEST_1;
+  hdma_spi1_tx.Init.Direction = DMA_MEMORY_TO_PERIPH;
+  hdma_spi1_tx.Init.PeriphInc = DMA_PINC_DISABLE;
+  hdma_spi1_tx.Init.MemInc = DMA_MINC_ENABLE;
+  hdma_spi1_tx.Init.PeriphDataAlignment = DMA_PDATAALIGN_BYTE;
+  hdma_spi1_tx.Init.MemDataAlignment = DMA_MDATAALIGN_BYTE;
+  hdma_spi1_tx.Init.Mode = DMA_NORMAL;
+  hdma_spi1_tx.Init.Priority = DMA_PRIORITY_LOW;
+  HAL_DMA_Init(&hdma_spi1_tx);
+
+  __HAL_LINKDMA(&hspi1, hdmatx, hdma_spi1_tx);
+
+
+}
+
+/**
   * @brief GPIO Initialization Function
   * @param None
   * @retval None
@@ -162,6 +270,12 @@ static void MX_GPIO_Init(void)
   /*Configure GPIO pin Output Level */
   HAL_GPIO_WritePin(GPIOB, GPIO_PIN_6, GPIO_PIN_RESET);
 
+  /*Configure GPIO pins : PA0 PA1 PA8 PA10 */
+  GPIO_InitStruct.Pin = GPIO_PIN_0|GPIO_PIN_1|GPIO_PIN_8|GPIO_PIN_10;
+  GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
+  GPIO_InitStruct.Pull = GPIO_PULLUP;
+  HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
+
   /*Configure GPIO pin : PB10 */
   GPIO_InitStruct.Pin = GPIO_PIN_10;
   GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
@@ -174,12 +288,6 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
-
-  /*Configure GPIO pins : PA8 PA10 */
-  GPIO_InitStruct.Pin = GPIO_PIN_8|GPIO_PIN_10;
-  GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
-  GPIO_InitStruct.Pull = GPIO_PULLUP;
-  HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
 
   /*Configure GPIO pin : PA9 */
   GPIO_InitStruct.Pin = GPIO_PIN_9;

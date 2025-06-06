@@ -6,6 +6,7 @@
  */
 #include "st7789.h"
 #include "graphics.h"
+#include "player.h"
 /*
  * Fill Background screen functions in RGB565 format
  * */
@@ -68,3 +69,42 @@ void FillScreenColor(uint16_t color) {
         ST7789_WriteData(data, 2);
     }
 }
+
+/*
+ * Sprite functionality
+ * */
+
+void DrawSprite(uint16_t x, uint16_t y, uint16_t w, uint16_t h, const uint16_t *sprite) {
+    ST7789_SetAddrWindow(x, y, x + w - 1, y + h - 1);
+
+    for (uint32_t i = 0; i < w * h; i++) {
+        uint8_t data[2] = {sprite[i] >> 8, sprite[i] & 0xFF};
+        ST7789_WriteData(data, 2);
+    }
+}
+
+uint8_t dma_row_buffer[2 * WIDTH];
+void DrawSpriteScaled_DMA(uint16_t x, uint16_t y, uint16_t w, uint16_t h, const uint16_t *sprite, uint8_t scale) {
+    for (uint16_t row = 0; row < h; row++) {
+        for (uint8_t dy = 0; dy < scale; dy++) {
+            ST7789_SetAddrWindow(x, y + (row * scale) + dy, x + (w * scale) - 1, y + (row * scale) + dy);
+            uint16_t idx = 0;
+
+            for (uint16_t col = 0; col < w; col++) {
+                uint16_t pixel = sprite[row * w + col];
+                for (uint8_t dx = 0; dx < scale; dx++) {
+                    dma_row_buffer[idx++] = pixel >> 8;
+                    dma_row_buffer[idx++] = pixel & 0xFF;
+                }
+            }
+
+            dma_transfer_complete = 0;
+            ST7789_WriteDataDMA(dma_row_buffer, idx);
+            while (!dma_transfer_complete);
+            CS_HIGH();
+        }
+    }
+}
+
+
+
